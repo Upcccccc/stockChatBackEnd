@@ -7,11 +7,11 @@ export const getNewsEventsFromDB = async (companyName: string) => {
             `
             SELECT id, date, link, category, headline
             FROM news
-            WHERE headline LIKE '%$1%' OR short_description LIKE  '%$1%'
+            WHERE headline LIKE $1 OR short_description LIKE $1
             ORDER BY date DESC
             LIMIT 20
-        `,
-            [companyName]
+            `,
+            [`%${companyName}%`]
         );
         return result.rows;
     } catch (error) {
