@@ -1,11 +1,21 @@
 import pool from '../config/db';
-import { pipeline } from '@xenova/transformers';
 import { QueryResult } from 'pg';
 
 let embeddingModel: any;
+let pipeline: any;
+
+// initialize the pipeline
+const initPipeline = async () => {
+    const transformers = await import('@xenova/transformers');
+    pipeline = transformers.pipeline;
+};
 
 // initialize the embedding model
 export const initEmbeddingModel = async () => {
+    if (!pipeline) {
+        await initPipeline();
+    }
+    
     if (!embeddingModel) {
         // using pipeline to load the distilbert model
         embeddingModel = await pipeline('feature-extraction', 'Xenova/distilbert-base-uncased', {
