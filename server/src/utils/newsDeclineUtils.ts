@@ -1,33 +1,38 @@
 import pool from '../config/db';
 
-export const getNewsDeclineEventsFromDB = async (companyName: string) => {
+export const getNewsDeclineEventsFromDB = async (year: string) => {
     const client = await pool.connect();
     try {
         const result = await client.query(
             `
-            WITH target_company AS (
-                SELECT ticker FROM company WHERE name ILIKE $1
+            WITH significant_drops AS (
+                SELECT DISTINCT s.ticker, s.date
+                FROM stocks s
+                WHERE EXTRACT(YEAR FROM s.date) = $1
+                AND ((s.open - s.close) / s.open) > 0.005
             ),
-            price_drops AS (
-                SELECT ticker, date
-                FROM stocks s1
-                WHERE close < open 
-                AND ticker = (SELECT ticker FROM target_company)
-                AND EXISTS (
-                    SELECT 1 FROM stocks s2
-                    WHERE s2.ticker = s1.ticker
-                    AND s2.date BETWEEN s1.date AND s1.date + interval '6 days'
-                    GROUP BY s2.ticker
-                    HAVING COUNT(*) >= 7 AND ALL(s2.close < s2.open)
-                )
+            relevant_companies AS (
+                SELECT DISTINCT c.name, c.ticker, sd.date as drop_date
+                FROM company c
+                JOIN significant_drops sd ON c.ticker = sd.ticker
             )
-            SELECT DISTINCT n.short_description, n.date
-            FROM news n, price_drops p, target_company t
-            WHERE n.date = p.date
-            AND n.short_description ILIKE '%' || (SELECT name FROM company WHERE ticker = t.ticker) || '%'
+            SELECT DISTINCT 
+                n.date as news_date,
+                rc.name as company_name,
+                n.short_description,
+                rc.drop_date
+            FROM news n
+            CROSS JOIN relevant_companies rc
+            WHERE EXTRACT(YEAR FROM n.date) = $1
+            AND (
+                -- Relaxed text matching condition
+                LOWER(n.short_description) LIKE LOWER('%' || rc.name || '%')
+                OR LOWER(n.headline) LIKE LOWER('%' || rc.name || '%')
+            )
+            AND ABS(n.date - rc.drop_date) <= 7  -- Extended to 7 days
             ORDER BY n.date;
             `,
-            [`%${companyName}%`]  // Remove the comma after the array
+            [year] // Just pass the year as a single parameter
         );
         return result.rows;
     } catch (error) {

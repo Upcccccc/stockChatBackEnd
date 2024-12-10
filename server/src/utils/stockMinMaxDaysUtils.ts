@@ -8,20 +8,20 @@ export const getStockMinMaxEventsFromDB = async (company_name: string, year: str
             WITH company_ticker AS (
                 SELECT ticker 
                 FROM company 
-                WHERE name = $1
+                WHERE name ILIKE '%' || $1 || '%'
             ),
             biggest_drop AS (
                 SELECT date as drop_date
                 FROM stocks
                 WHERE ticker = (SELECT ticker FROM company_ticker)
-                AND date >= $2 || '-01-01' 
-                AND date < $2 || '-12-31'
+                AND date >= ($2 || '-01-01')::date 
+                AND date < ($2 || '-12-31')::date
                 AND (open - close) = (
                     SELECT MAX(open - close)
                     FROM stocks
                     WHERE ticker = (SELECT ticker FROM company_ticker)
-                    AND date >= $2 || '-01-01' 
-                    AND date < $2 || '-12-31'
+                    AND date >= ($2 || '-01-01')::date 
+                    AND date < ($2 || '-12-31')::date
                 )
                 LIMIT 1
             ),
@@ -29,14 +29,14 @@ export const getStockMinMaxEventsFromDB = async (company_name: string, year: str
                 SELECT date as boost_date
                 FROM stocks
                 WHERE ticker = (SELECT ticker FROM company_ticker)
-                AND date >= $2 || '-01-01' 
-                AND date < $2 || '-12-31'
+                AND date >= ($2 || '-01-01')::date 
+                AND date < ($2 || '-12-31')::date
                 AND (close - open) = (
                     SELECT MAX(close - open)
                     FROM stocks
                     WHERE ticker = (SELECT ticker FROM company_ticker)
-                    AND date >= $2 || '-01-01' 
-                    AND date < $2 || '-12-31'
+                    AND date >= ($2 || '-01-01')::date 
+                    AND date < ($2 || '-12-31')::date
                 )
                 LIMIT 1
             )
