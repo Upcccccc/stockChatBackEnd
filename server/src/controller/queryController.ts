@@ -17,12 +17,25 @@ export const handleQuery = async (req: Request, res: Response) => {
         const similarNews = await findSimilarNews(queryVector);
 
         // take the summaries of the similar news
-        const relevantSummaries = similarNews.map((doc) => doc.summary);
+        const relevantSummaries = similarNews.map((doc) => ({
+            title: doc.title,
+            summary: doc.summary,
+            distance: doc.distance
+        }));
 
         // use LLM to generate response
-        const aiResponse = await generateResponse(userQuery, relevantSummaries);
+        const aiResponse = await generateResponse(userQuery,
+            relevantSummaries.map(news => `${news.title}: ${news.summary}`)
+        );
 
-        res.json({ data: aiResponse });
+        // 返回完整信息
+        res.json({
+            success: true,
+            data: {
+                answer: aiResponse,
+                relatedNews: relevantSummaries
+            }
+        });
     } catch (error) {
         console.error('Error handling query:', error);
         res.status(500).json({ error: 'Internal server error' });

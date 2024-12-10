@@ -15,10 +15,13 @@ export const initEmbeddingModel = async () => {
     if (!pipeline) {
         await initPipeline();
     }
-    
+
     if (!embeddingModel) {
         // using pipeline to load the distilbert model
         embeddingModel = await pipeline('feature-extraction', 'Xenova/distilbert-base-uncased', {
+            pooling: 'cls',          // 使用 CLS token
+            normalize: true,
+            revision: 'default',
             progress_callback: (progress: number) => {
                 console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
             },
@@ -34,10 +37,13 @@ export const transformTextToVector = async (text: string): Promise<number[]> => 
     }
 
     // get the embedding of the text
+    console.log('Transforming text to vector...');
     const output = await embeddingModel(text, {
-        pooling: 'mean', // take the mean of the embeddings
-        normalize: true, // normalize the embeddings
+        pooling: 'cls',
+        normalize: true
     });
+    console.log(output)
+    console.log('Text transformed to vector successfully.');
 
     const vector = Array.from(output.data).map(value => Number(value));
 
@@ -47,21 +53,24 @@ export const transformTextToVector = async (text: string): Promise<number[]> => 
 // search for similar news by vector
 export const findSimilarNews = async (queryVector: number[]): Promise<any[]> => {
     const client = await pool.connect();
+    console.log(queryVector.length);
+    console.log('Query vector:', queryVector);
+
     try {
         // transfer the vector to string like '[0.1, 0.2, 0.3]'
         const vectorString = '[' + queryVector.join(',') + ']';
 
-        // TODO： search for similar news by vector change the SQL query
         const result: QueryResult = await client.query(
             `
-          // TODO: search for similar news by vector
-          // SQL query example: 
-          
-          SELECT id, title, summary, date
-          FROM news_data
-          ORDER BY embedding <#> $1
-          LIMIT 3
-      `,
+            SELECT 
+                id,
+                headline as title,
+                short_description as summary,
+                date
+            FROM news
+            ORDER BY embedding <=> $1::vector
+            LIMIT 5
+            `,
             [vectorString]
         );
         return result.rows;
