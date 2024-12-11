@@ -1,9 +1,9 @@
 import express from 'express';
 import { asyncErrorHandler } from '../utils/apiHandler';
-import { getMinMaxPriceEvents } from '../controller/stockMinMaxPriceController';
+import { getSimilarCompanies } from '../controller/stockSimilarCompaniesController';
 
 const router = express.Router();
 
-router.get('/', asyncErrorHandler(getMinMaxPriceEvents));
+router.get('/', asyncErrorHandler(getSimilarCompanies));
 
 export default router;

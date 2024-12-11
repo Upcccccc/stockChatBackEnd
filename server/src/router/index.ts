@@ -5,7 +5,7 @@ import newsRoutes from './newsRouters';
 import newsDeclineRoutes from './newsDeclineRouters';
 import newsDeclineAssetsRoutes from './newsDeclineAssetsRouters';
 import stockMinMaxCompanyRoutes from './stockMinMaxCompanyRouters';
-import stockMinMaxPriceRoutes from './stockMinMaxPriceRouters';
+import stockSimilarCompaniesRoutes from './stockSimilarCompaniesRouters';
 
 const router = express.Router();
 
@@ -15,6 +15,6 @@ router.use('/news-events', newsRoutes);
 router.use('/news-decline-company', newsDeclineRoutes);
 router.use('/news-decline-assets', newsDeclineAssetsRoutes);
 router.use('/stocks-min-max-company', stockMinMaxCompanyRoutes);
-router.use('/stocks-min-max-price', stockMinMaxPriceRoutes);
+router.use('/stocks-similar-companies', stockSimilarCompaniesRoutes);
 
 export default router;
