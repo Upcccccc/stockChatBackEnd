@@ -8,6 +8,7 @@ const USER_ID = "testUser";
 export const createChat: RequestHandler = async (req, res) => {
     const { text } = req.body;
     if (!text) {
+        console.log("Request rejected: Empty text received");
         res.status(400).send("Text is required");
         return;
     }
@@ -18,6 +19,10 @@ export const createChat: RequestHandler = async (req, res) => {
             history: [{ role: "user", parts: [{ text }] }],
         });
         const savedChat = await newChat.save();
+        console.log("New chat created:", {
+            chatId: savedChat._id.toString(),
+            initialText: text,
+        });
 
         let userChats = await UserChats.findOne({ userId: USER_ID });
         if (!userChats) {
@@ -30,32 +35,52 @@ export const createChat: RequestHandler = async (req, res) => {
                     },
                 ],
             });
+            console.log("Created new UserChats document for user:", USER_ID);
         } else {
             userChats.chats.push({
                 _id: savedChat._id.toString(),
                 title: text.substring(0, 40),
             });
+            console.log("Added chat to existing UserChats document");
         }
         await userChats.save();
 
         const response = await queryRAG(text);
-        const answer = response.data?.answer || "No answer";
+        console.log("RAG Response:", {
+            success: !!response.data,
+            answer: response.data?.answer || "No answer",
+            responseDetails: response.data, // Log full response data
+        });
 
-        await Chat.updateOne(
-            { _id: savedChat._id, userId: USER_ID },
-            {
-                $push: {
-                    history: {
-                        role: "model",
-                        parts: [{ text: answer }]
+        if (response.data?.answer) {
+            await Chat.updateOne(
+                { _id: savedChat._id, userId: USER_ID },
+                {
+                    $push: {
+                        history: {
+                            role: "model",
+                            parts: [{ text: response.data.answer }]
+                        }
                     }
                 }
-            }
-        );
+            );
+            console.log("Chat history updated with model response");
+        }
+
+        console.log("Chat creation completed successfully:", {
+            chatId: savedChat._id.toString(),
+            userQuery: text,
+            modelResponse: response.data?.answer || "No answer",
+            historyLength: 2, // Initial query + response
+        });
 
         res.status(201).send(savedChat._id.toString());
     } catch (err) {
-        console.error(err);
+        console.error("Error in createChat:", {
+            error: err,
+            userQuery: text,
+            userId: USER_ID,
+        });
         res.status(500).send("Error creating chat!");
     }
 };
