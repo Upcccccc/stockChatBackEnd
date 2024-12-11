@@ -5,7 +5,7 @@ export const getNewsDeclineEvents = async (req: Request, res: Response) => {
     const { year } = req.query;
 
     if (!year ) {
-        return res.status(400).json({ error: 'Company name is required' });
+        return res.status(400).json({ error: 'Year is required' });
     }
 
     try {

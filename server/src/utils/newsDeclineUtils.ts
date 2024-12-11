@@ -5,34 +5,45 @@ export const getNewsDeclineEventsFromDB = async (year: string) => {
     try {
         const result = await client.query(
             `
-            WITH significant_drops AS (
-                SELECT DISTINCT s.ticker, s.date
-                FROM stocks s
-                WHERE EXTRACT(YEAR FROM s.date) = $1
-                AND ((s.open - s.close) / s.open) > 0.005
-            ),
-            relevant_companies AS (
-                SELECT DISTINCT c.name, c.ticker, sd.date as drop_date
-                FROM company c
-                JOIN significant_drops sd ON c.ticker = sd.ticker
-            )
-            SELECT DISTINCT 
-                n.date as news_date,
-                rc.name as company_name,
-                n.short_description,
-                rc.drop_date
-            FROM news n
-            CROSS JOIN relevant_companies rc
-            WHERE EXTRACT(YEAR FROM n.date) = $1
+        WITH daily_changes AS (
+            SELECT 
+                s.ticker,
+                s.date,
+                s.open,
+                LAG(s.open, 5) OVER (PARTITION BY s.ticker ORDER BY s.date) as five_day_prior_open
+            FROM stocks s
+            WHERE s.date >= make_date($1::int, 1, 1)
+            AND s.date < make_date(($1::int + 1), 1, 1)
+        ),
+        significant_drops AS (
+            SELECT DISTINCT ticker, date
+            FROM daily_changes
+            WHERE five_day_prior_open IS NOT NULL
+            AND ((five_day_prior_open - open) / five_day_prior_open) > 0.001
+        ),
+        relevant_companies AS (
+            SELECT c.name, c.ticker, sd.date as drop_date
+            FROM company c
+            INNER JOIN significant_drops sd ON c.ticker = sd.ticker
+        )
+        SELECT DISTINCT 
+            n.date as news_date,
+            rc.name as company_name,
+            n.short_description,
+            rc.drop_date
+        FROM news n
+        INNER JOIN relevant_companies rc ON 
+            n.date >= rc.drop_date - INTERVAL '7 days' 
+            AND n.date <= rc.drop_date + INTERVAL '7 days'
             AND (
-                -- Relaxed text matching condition
-                LOWER(n.short_description) LIKE LOWER('%' || rc.name || '%')
-                OR LOWER(n.headline) LIKE LOWER('%' || rc.name || '%')
+                n.short_description ILIKE '%' || rc.name || '%'
+                OR n.headline ILIKE '%' || rc.name || '%'
             )
-            AND ABS(n.date - rc.drop_date) <= 7  -- Extended to 7 days
-            ORDER BY n.date;
-            `,
-            [year] // Just pass the year as a single parameter
+        WHERE n.date >= make_date($1::int, 1, 1)
+        AND n.date < make_date(($1::int + 1), 1, 1)
+        ORDER BY n.date;
+        `,
+            [year]
         );
         return result.rows;
     } catch (error) {
