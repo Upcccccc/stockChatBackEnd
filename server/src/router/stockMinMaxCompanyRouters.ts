@@ -1,9 +1,9 @@
 import express from 'express';
 import { asyncErrorHandler } from '../utils/apiHandler';
-import { getMinMaxDaysEvents } from '../controller/stockMinMaxDaysController';
+import { getMonotonicTrends } from '../controller/stockMinMaxCompanyController';
 
 const router = express.Router();
 
-router.get('/', asyncErrorHandler(getMinMaxDaysEvents));
+router.get('/', asyncErrorHandler(getMonotonicTrends));
 
 export default router;
