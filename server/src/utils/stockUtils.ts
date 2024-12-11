@@ -23,7 +23,7 @@ export const getStockDataFromDB = async (
                 c.country
             FROM stocks s
             JOIN company c ON s.ticker = c.ticker
-            WHERE c.name = $1
+            WHERE c.name ILIKE '%' || $1 || '%'
         `;
 
         const queryParams = [companyName];
@@ -31,13 +31,13 @@ export const getStockDataFromDB = async (
 
         // if start date and end date are provided, add them to the query
         if (startDate) {
-            query += ` AND s.date >= $${paramCounter}`;
+            query += ` AND s.date >= ($${paramCounter}::date)`;
             queryParams.push(startDate);
             paramCounter++;
         }
 
         if (endDate) {
-            query += ` AND s.date <= $${paramCounter}`;
+            query += ` AND s.date <= ($${paramCounter}::date)`;
             queryParams.push(endDate);
         }
 

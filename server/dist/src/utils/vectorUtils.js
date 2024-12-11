@@ -32,9 +32,9 @@ const initEmbeddingModel = () => __awaiter(void 0, void 0, void 0, function* () 
             pooling: 'cls', // 使用 CLS token
             normalize: true,
             revision: 'default',
-            progress_callback: (progress) => {
-                console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
-            },
+            // progress_callback: (progress: number) => {
+            //     console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
+            // },
         });
         console.log('Embedding model loaded successfully.');
     }
@@ -46,12 +46,11 @@ const transformTextToVector = (text) => __awaiter(void 0, void 0, void 0, functi
         yield (0, exports.initEmbeddingModel)();
     }
     // get the embedding of the text
-    console.log('Transforming text to vector...');
+    // console.log('Transforming text to vector...');
     const output = yield embeddingModel(text, {
         pooling: 'cls',
         normalize: true
     });
-    console.log(output);
     console.log('Text transformed to vector successfully.');
     const vector = Array.from(output.data).map(value => Number(value));
     return vector;
@@ -60,21 +59,22 @@ exports.transformTextToVector = transformTextToVector;
 // search for similar news by vector
 const findSimilarNews = (queryVector) => __awaiter(void 0, void 0, void 0, function* () {
     const client = yield db_1.default.connect();
-    console.log(queryVector.length);
-    console.log('Query vector:', queryVector);
     try {
-        // transfer the vector to string like '[0.1, 0.2, 0.3]'
-        const vectorString = '[' + queryVector.join(',') + ']';
+        const vectorString = `[${queryVector.join(',')}]`;
+        console.log('Vector length:', queryVector.length); // Debug length
+        console.log('Vector sample:', queryVector.slice(0, 5)); // Debug first 5 elements
         const result = yield client.query(`
-            SELECT 
-                id,
-                headline as title,
-                short_description as summary,
-                date
-            FROM news
-            ORDER BY embedding <=> $1::vector
-            LIMIT 5
-            `, [vectorString]);
+        SELECT 
+            id,
+            headline as title,
+            COALESCE(short_description, 'No description') as summary,
+            date,
+            embedding <=> $1 as distance
+        FROM news
+        ORDER BY embedding <=> $1
+        LIMIT 5
+        `, [vectorString]);
+        console.log('Query results:', result.rows);
         return result.rows;
     }
     catch (error) {

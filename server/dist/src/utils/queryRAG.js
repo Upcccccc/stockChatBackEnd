@@ -14,10 +14,17 @@ const vectorUtils_1 = require("./vectorUtils");
 const LLMUtils_1 = require("./LLMUtils");
 function queryRAG(text) {
     return __awaiter(this, void 0, void 0, function* () {
+        console.time('queryRAG');
+        console.time('vectorTransform');
         const queryVector = yield (0, vectorUtils_1.transformTextToVector)(text);
+        console.timeEnd('vectorTransform');
+        console.time('similarNews');
         const similarNews = yield (0, vectorUtils_1.findSimilarNews)(queryVector);
-        const relevantSummaries = similarNews.map(doc => `${doc.title}: ${doc.summary}`);
-        const aiResponse = yield (0, LLMUtils_1.generateResponse)(text, relevantSummaries);
+        console.timeEnd('similarNews');
+        console.time('generateResponse');
+        const aiResponse = yield (0, LLMUtils_1.generateResponse)(text, similarNews.map(doc => `${doc.title}: ${doc.summary}`));
+        console.timeEnd('generateResponse');
+        console.timeEnd('queryRAG');
         return {
             data: {
                 answer: aiResponse,
