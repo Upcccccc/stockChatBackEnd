@@ -3,7 +3,7 @@ import queryRoutes from './queryRouters';
 import stockRoutes from './stockRouters';
 import newsRoutes from './newsRouters';
 import newsDeclineRoutes from './newsDeclineRouters';
-import newsDeclineAssetsRoutes from './newsDeclineAssetsRouters';
+import stockIndustryRoutes from './stockIndustryRouters';
 import stockMinMaxCompanyRoutes from './stockMinMaxCompanyRouters';
 import stockSimilarCompaniesRoutes from './stockSimilarCompaniesRouters';
 
@@ -13,7 +13,7 @@ router.use('/query', queryRoutes);
 router.use('/stock-data', stockRoutes);
 router.use('/news-events', newsRoutes);
 router.use('/news-decline-company', newsDeclineRoutes);
-router.use('/news-decline-assets', newsDeclineAssetsRoutes);
+router.use('/stocks-industry', stockIndustryRoutes);
 router.use('/stocks-min-max-company', stockMinMaxCompanyRoutes);
 router.use('/stocks-similar-companies', stockSimilarCompaniesRoutes);
 
