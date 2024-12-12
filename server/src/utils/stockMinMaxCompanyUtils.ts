@@ -14,6 +14,7 @@ export const getStockMonotonicTrendsFromDB = async (
                 FROM company 
                 WHERE name ILIKE '%' || $1 || '%'
             ),
+            
             daily_prices AS (
                 SELECT 
                     date,
@@ -25,30 +26,33 @@ export const getStockMonotonicTrendsFromDB = async (
                 AND date >= $2::date 
                 AND date <= $3::date
             ),
+            
             sequences AS (
                 SELECT 
                     date,
                     close,
                     CASE 
-                        WHEN price_change >= 0 THEN 1  -- increase
-                        ELSE -1  -- decrease
+                        WHEN price_change >= 0 THEN 1
+                        ELSE -1 
                     END as trend,
                     CASE 
-                        WHEN price_change >= 0 AND LAG(price_change) OVER (ORDER BY date) < 0 THEN 1
-                        WHEN price_change < 0 AND LAG(price_change) OVER (ORDER BY date) >= 0 THEN 1
+                        WHEN price_change >= 0 AND LAG(price_change) OVER (ORDER BY date) < 0 THEN 1  
+                        WHEN price_change < 0 AND LAG(price_change) OVER (ORDER BY date) >= 0 THEN 1 
                         ELSE 0
                     END as new_sequence
                 FROM daily_prices
                 WHERE price_change IS NOT NULL
             ),
+            
             grouped_sequences AS (
-                SELECT 
+                SELECT
                     date,
                     close,
                     trend,
-                    SUM(new_sequence) OVER (ORDER BY date) as sequence_group
+                    SUM(new_sequence) OVER (ORDER BY date) as sequence_group 
                 FROM sequences
             ),
+            
             trends AS (
                 SELECT 
                     MIN(date) as start_from,
@@ -65,10 +69,12 @@ export const getStockMonotonicTrendsFromDB = async (
                 GROUP BY sequence_group, trend
                 HAVING COUNT(*) >= 2
             )
+            
+          
             SELECT start_from, end_at, amount, trend_type
             FROM trends
             WHERE (trend_type = 'increase' AND amount = (SELECT MAX(amount) FROM trends WHERE trend_type = 'increase'))
-            OR (trend_type = 'decrease' AND amount = (SELECT MAX(amount) FROM trends WHERE trend_type = 'decrease'))
+            OR (trend_type = 'decrease' AND amount = (SELECT MIN(amount) FROM trends WHERE trend_type = 'decrease'))
             ORDER BY trend_type;
             `,
             [company_name, start_date, end_date]
