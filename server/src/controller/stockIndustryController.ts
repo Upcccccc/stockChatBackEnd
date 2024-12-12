@@ -57,14 +57,14 @@ export const getIndustryAnalysis = async (req: Request, res: Response) => {
     }
 
     // Optional: Check if date range is within reasonable bounds
-    const maxDateRange = 365 * 5; // 5 years
-    const daysDifference = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysDifference > maxDateRange) {
-        return res.status(400).json({
-            error: 'Date range cannot exceed 5 years'
-        });
-    }
+    // const maxDateRange = 365 * 5; // 5 years
+    // const daysDifference = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
+    //
+    // if (daysDifference > maxDateRange) {
+    //     return res.status(400).json({
+    //         error: 'Date range cannot exceed 5 years'
+    //     });
+    // }
 
     try {
         // Get industry analysis from database
