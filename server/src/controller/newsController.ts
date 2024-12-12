@@ -1,18 +1,18 @@
 import { Request, Response } from 'express';
-import { getNewsEventsFromDB } from '../utils/newsUtils';
+import { getLatestNewsFromDB, getNewsEventsFromDB } from '../utils/newsUtils';
 
 export const getNewsEvents = async (req: Request, res: Response) => {
     const { company_name } = req.query;
 
-    if (!company_name ) {
-        return res.status(400).json({ error: 'Company name is required' });
-    }
-
     try {
-        // get news events from database
-        const newsEvents = await getNewsEventsFromDB(company_name  as string);
+        const newsEvents = company_name
+            ? await getNewsEventsFromDB(company_name as string)
+            : await getLatestNewsFromDB();
 
-        res.json({ data: newsEvents });
+        res.json({
+            data: newsEvents,
+            totalCount: newsEvents.length
+        });
     } catch (error) {
         console.error('Error fetching news events:', error);
         res.status(500).json({ error: 'Internal server error' });
