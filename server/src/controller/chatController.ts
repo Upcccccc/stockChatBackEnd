@@ -2,6 +2,8 @@ import { RequestHandler } from 'express';
 import Chat from '../model/chat';
 import UserChats from '../model/userChats';
 import { queryRAG } from '../utils/queryRAG';
+import asyncHandler from 'express-async-handler';
+import { Request, Response } from 'express';
 
 const USER_ID = "testUser";
 
@@ -85,6 +87,22 @@ export const createChat: RequestHandler = async (req, res) => {
     }
 };
 
+export const deleteChat: RequestHandler = async (req, res) => {
+    const { id } = req.params;
+    const USER_ID = "testUser";
+    try {
+        await Chat.deleteOne({ _id: id, userId: USER_ID });
+        await UserChats.updateOne(
+            { userId: USER_ID },
+            { $pull: { chats: { _id: id } } }
+        );
+        res.status(200).send("Chat deleted successfully");
+    } catch (err) {
+        console.error("Error deleting chat:", err);
+        res.status(500).send("Error deleting chat");
+    }
+};
+
 export const getUserChats: RequestHandler = async (req, res) => {
     try {
         const userChats = await UserChats.findOne({ userId: USER_ID });
@@ -95,15 +113,21 @@ export const getUserChats: RequestHandler = async (req, res) => {
     }
 };
 
-export const getChat: RequestHandler = async (req, res) => {
+export const getChat: RequestHandler = asyncHandler(async (req, res, next) => {
     try {
         const chat = await Chat.findOne({ _id: req.params.id, userId: USER_ID });
+        if (!chat) {
+            res.status(404).send("Chat not found");
+            return;
+        }
         res.status(200).send(chat);
+        return;
     } catch (err) {
         console.error(err);
         res.status(500).send("Error fetching chat!");
+        return;
     }
-};
+});
 
 export const updateChat: RequestHandler = async (req, res) => {
     const { question, img } = req.body;
