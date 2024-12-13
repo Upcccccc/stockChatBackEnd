@@ -2,9 +2,17 @@ import { Request, Response } from 'express';
 import { getLatestNewsFromDB, getNewsEventsFromDB } from '../utils/newsUtils';
 
 export const getNewsEvents = async (req: Request, res: Response) => {
-    const { company_name } = req.query;
+    let { company_name } = req.query;
 
     try {
+        // Capitalize company name if it exists
+        if (company_name) {
+            company_name = (company_name as string)
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+        }
+
         const newsEvents = company_name
             ? await getNewsEventsFromDB(company_name as string)
             : await getLatestNewsFromDB();
