@@ -80,3 +80,34 @@ export const findSimilarNews = async (queryVector: number[]): Promise<any[]> => 
         client.release();
     }
 };
+
+export const findSimilarNewsWithUrls = async (queryVector: number[]): Promise<any[]> => {
+    const client = await pool.connect();
+    try {
+        const vectorString = `[${queryVector.join(',')}]`;
+
+        const result: QueryResult = await client.query(
+            `
+            SELECT 
+                id,
+                headline as title,
+                COALESCE(short_description, 'No description') as summary,
+                date,
+                link as url,
+                category,
+                embedding <=> $1 as distance
+            FROM news
+            ORDER BY embedding <=> $1
+            
+            LIMIT 20
+            `,
+            [vectorString]
+        );
+        return result.rows;
+    } catch (error) {
+        console.error('Error during vector search:', error);
+        throw error;
+    } finally {
+        client.release();
+    }
+};
